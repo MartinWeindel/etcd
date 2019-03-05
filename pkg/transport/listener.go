@@ -53,6 +53,9 @@ func wrapTLS(addr, scheme string, tlsinfo *TLSInfo, l net.Listener) (net.Listene
 	if scheme != "https" && scheme != "unixs" {
 		return l, nil
 	}
+	if tlsinfo.SkipClientVerify {
+		return NewTLSListener(l, tlsinfo)
+	}
 	return newTLSListener(l, tlsinfo, checkSAN)
 }
 
@@ -64,6 +67,7 @@ type TLSInfo struct {
 	ClientCertAuth     bool
 	CRLFile            string
 	InsecureSkipVerify bool
+	SkipClientVerify   bool
 
 	// ServerName ensures the cert matches the given host in case of discovery / virtual hosting
 	ServerName string

@@ -289,24 +289,24 @@ func NewConfig() *Config {
 	return cfg
 }
 
-func logTLSHandshakeFailure(conn *tls.Conn, err error) {
+func logTLSHandshakeFailure(kind string, conn *tls.Conn, err error) {
 	state := conn.ConnectionState()
 	remoteAddr := conn.RemoteAddr().String()
 	serverName := state.ServerName
 	if len(state.PeerCertificates) > 0 {
 		cert := state.PeerCertificates[0]
 		ips, dns := cert.IPAddresses, cert.DNSNames
-		plog.Infof("rejected connection from %q (error %q, ServerName %q, IPAddresses %q, DNSNames %q)", remoteAddr, err.Error(), serverName, ips, dns)
+		plog.Infof("rejected %s connection from %q (error %q, ServerName %q, IPAddresses %q, DNSNames %q)", kind, remoteAddr, err.Error(), serverName, ips, dns)
 	} else {
-		plog.Infof("rejected connection from %q (error %q, ServerName %q)", remoteAddr, err.Error(), serverName)
+		plog.Infof("rejected %s connection from %q (error %q, ServerName %q)", kind, remoteAddr, err.Error(), serverName)
 	}
 }
 
 // SetupLogging initializes etcd logging.
 // Must be called after flag parsing.
 func (cfg *Config) SetupLogging() {
-	cfg.ClientTLSInfo.HandshakeFailure = logTLSHandshakeFailure
-	cfg.PeerTLSInfo.HandshakeFailure = logTLSHandshakeFailure
+	cfg.ClientTLSInfo.HandshakeFailure = func(conn *tls.Conn, err error) { logTLSHandshakeFailure("client", conn, err) }
+	cfg.PeerTLSInfo.HandshakeFailure = func(conn *tls.Conn, err error) { logTLSHandshakeFailure("peer", conn, err) }
 
 	capnslog.SetGlobalLogLevel(capnslog.INFO)
 	if cfg.Debug {
